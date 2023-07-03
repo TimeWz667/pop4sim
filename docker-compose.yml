@@ -11,14 +11,11 @@ services:
 #      - 1167:8888
 #    environment:
 #      - JUPYTER_TOKEN=hi
-  pkgdev:
-      image: pkg/pkg-dev
-      build:
-        context: ./
-        dockerfile: ./docker/pkg-dev/Dockerfile
+  pop4sim_dev:
+      image: jupyter/scipy-notebook:python-3.10.9
       volumes:
         - ./notebooks:/home/jovyan/work
-        - ./src/pkg:/home/jovyan/work/pkg
+        - ./src/pop4sim:/home/jovyan/work/pop4sim
       ports:
         - 8888:8888
       environment:

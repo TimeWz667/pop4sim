@@ -3,16 +3,17 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pkg"
+name = "pop4sim"
 version = "0.0.1"
 authors = [
   { name="TimeWz667", email="timewz667@gmail.com" },
 ]
-description = "A small example package"
+description = "Package for serving parameters to population dynamic modelling"
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]

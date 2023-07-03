@@ -3,5 +3,3 @@ name: pkg-dev
 channels:
 - conda-forge
 - defaults
-dependencies:
-- pydantic
