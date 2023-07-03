@@ -1,0 +1,25 @@
+version:                "1"
+services:
+#  pkg:
+#    image: pkg/pkg
+#    build:
+#      context: ./
+#      dockerfile: ./docker/pkg/Dockerfile
+##    volumes:
+##      - ./notebooks:/home/jovyan/work
+#    ports:
+#      - 1167:8888
+#    environment:
+#      - JUPYTER_TOKEN=hi
+  pkgdev:
+      image: pkg/pkg-dev
+      build:
+        context: ./
+        dockerfile: ./docker/pkg-dev/Dockerfile
+      volumes:
+        - ./notebooks:/home/jovyan/work
+        - ./src/pkg:/home/jovyan/work/pkg
+      ports:
+        - 8888:8888
+      environment:
+        - JUPYTER_TOKEN=hi

@@ -1,0 +1,7 @@
+# "dev" conda envs are to be used by devs in setting their local environments
+name: pkg-dev
+channels:
+- conda-forge
+- defaults
+dependencies:
+- pydantic
