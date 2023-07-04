@@ -8,6 +8,8 @@ import urllib3
 __author__ = 'Chu-Chang Ku'
 __all__ = ['FetcherWPP', 'fetch_wpp']
 
+WPP_BaseURL = 'https://population.un.org/dataportalapi/api/v1'
+
 
 class DefaultAdaptor(requests.adapters.HTTPAdapter):
     def __init__(self, ssl_context=None, **kwargs):
@@ -23,7 +25,7 @@ class DefaultAdaptor(requests.adapters.HTTPAdapter):
 class FetcherWPP:
     def __init__(self, adapter=None):
         self.Session = ses = requests.session()
-        self.BaseURL = 'https://population.un.org/dataportalapi/api/v1'
+        self.BaseURL = WPP_BaseURL
 
         if adapter is None:
             ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
@@ -43,7 +45,7 @@ class FetcherWPP:
 
     def fetch(self, gid, idx, year0, year1):
         response = self.get(
-            f'/data/indicators/{idx}/locations/{gid}/start/{year0}/end/{year1}?pageSize=1000&variant=Median')
+            f'/data/indicators/{idx}/locations/{gid}/start/{year0}/end/{year1}?pageSize=500&variant=Median')
 
         js = response.json()
 
@@ -51,7 +53,7 @@ class FetcherWPP:
         df = pd.json_normalize(js['data'])
         dfs.append(df)
 
-        while js['nextPage'] != None:
+        while js['nextPage'] is not None:
             # Redirect to the next page
             target = js['nextPage'].replace(self.BaseURL, '')
             response = self.get(target)
@@ -90,7 +92,7 @@ def reform_mt(df):
     for i, yr in enumerate(yrs):
         yr = f'{yr}'
         sel = df[df.timeLabel == yr]
-        mt[i] = sel.value
+        mt[i] = sel.value.iloc[0]
     return mt, yrs
 
 
@@ -115,17 +117,17 @@ def fetch_wpp(loc, year0=1970, year1=2030, fetcher=None):
     pop_m = pop[pop.sex == 'Male']
 
     print('Fetch deaths')
-    dea = fetcher.fetch(idx=69, gid=gid, year0=year0, year1=year1)
+    dea = fetcher.fetch(idx=69, gid=gid, year0=year0 - 1, year1=year1 + 1)
     dea = dea[dea.variant == 'Median']
     dea_f = dea[dea.sex == 'Female']
     dea_m = dea[dea.sex == 'Male']
 
     print('Fetch birth rate')
-    bir = fetcher.fetch(idx=55, gid=gid, year0=year0, year1=year1)
+    bir = fetcher.fetch(idx=55, gid=gid, year0=year0 - 1, year1=year1 + 1)
     bir = bir[bir.variant == 'Median']
 
     print('Fetch sex ratio at birth')
-    bsr = fetcher.fetch(idx=58, gid=gid, year0=year0, year1=year1)
+    bsr = fetcher.fetch(idx=58, gid=gid, year0=year0 - 1, year1=year1 + 1)
     bsr = bsr[bsr.variant == 'Median']
 
     raw = {
@@ -135,20 +137,25 @@ def fetch_wpp(loc, year0=1970, year1=2030, fetcher=None):
     }
 
     ext = dict()
-    ext['N_F_0'], ext['N_F_m'], ext['N_F_1'] = divide_pop(raw['pop_f'][0] * 1e3)
-    ext['N_M_0'], ext['N_M_m'], ext['N_M_1'] = divide_pop(raw['pop_m'][0] * 1e3)
-    ext['DeaR_F'] = raw['dea_f'][0] / ext['N_F_m'] * 1e3
-    ext['DeaR_M'] = raw['dea_m'][0] / ext['N_M_m'] * 1e3
+    ext['N_F'] = raw['pop_f'][0]
+    ext['N_M'] = raw['pop_m'][0]
+
+    # ext['N_F_0'], ext['N_F_m'], ext['N_F_1'] = divide_pop(raw['pop_f'][0] * 1e3)
+    # ext['N_M_0'], ext['N_M_m'], ext['N_M_1'] = divide_pop(raw['pop_m'][0] * 1e3)
+    ext['DeaR_F'] = raw['dea_f'][0] / ext['N_F']
+    ext['DeaR_M'] = raw['dea_m'][0] / ext['N_M']
 
     prop_f = 1 / (1 + raw['bsr'][0])
     prop_m = 1 - prop_f
     ext['BirR_F'] = raw['bir'][0] * prop_f * 1e-3
     ext['BirR_M'] = raw['bir'][0] * prop_m * 1e-3
 
-    ext['Year'], ext['Age'] = raw['dea_f'][1], raw['dea_f'][2]
+    years = np.array(raw['dea_f'][1]) + 0.5
+    ext['Year'], ext['Age'] = years, raw['dea_f'][2]
+
     return ext
 
 
 if __name__ == '__main__':
     ext = fetch_wpp(loc='VN', year0=2000, year1=2010)
-    print(ext['N_F_m'])
+    print(ext['N_F'])
