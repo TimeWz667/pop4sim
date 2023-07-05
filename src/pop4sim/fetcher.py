@@ -20,6 +20,77 @@ class RawData:
         self.RateDeath = dea
         self.RateBirth = bir
 
+    def aggregate(self, sex=True, agp='All'):
+        dimnames = {'Year': [int(yr - 0.5) for yr in self.Years]}
+
+        n0 = np.stack([self.Population['F'], self.Population['M']], 2)
+        dr0 = np.stack([self.RateDeath['F'], self.RateDeath['M']], 2)
+        br0 = np.stack([self.RateBirth['F'], self.RateBirth['M']], 1)
+
+        nt = n0.sum((1, 2))
+
+        dea0 = dr0 * n0
+        bir0 = br0 * n0.sum((1, 2)).reshape((-1, 1))
+
+        if isinstance(agp, dict):
+            n_agp = len(agp)
+            n_yr = n0.shape[0]
+
+            n1 = np.zeros((n_yr, n_agp, 2))
+            dea1 = np.zeros((n_yr, n_agp, 2))
+            ageing1 = np.zeros((n_yr, n_agp, 2))
+
+            for i, a in enumerate(agp.values()):
+                n1[:, i, 0] = n0[:, a, 0].sum(1)
+                n1[:, i, 1] = n0[:, a, 1].sum(1)
+                dea1[:, i, 0] = dea0[:, a, 0].sum(1)
+                dea1[:, i, 1] = dea0[:, a, 1].sum(1)
+                ageing1[:, i] = n0[:, a[-1]]
+
+            ageing1[:, -1, :] = 0
+            bir1 = bir0
+            dimnames['Age'] = list(agp.keys())
+        elif agp == 'All':
+            n1 = n0.sum(1)
+            dea1 = dea0.sum(1)
+            bir1 = bir0
+            ageing1 = np.zeros_like(n1)
+        else:
+            n1 = n0
+            dea1 = dea0
+            bir1 = bir0
+            ageing1 = n0.copy()
+            ageing1[:, -1, :] = 0
+            dimnames['Age'] = [str(a) for a in range(100)]
+            dimnames['Age'].append('100+')
+
+        if not sex:
+            n1 = n1.sum(-1)
+            dea1 = dea1.sum(-1)
+            ageing1 = ageing1.sum(-1)
+            bir1 = bir1.sum(-1)
+        else:
+            dimnames['Sex'] = ['F', 'M']
+
+        dr1 = dea1 / n1
+        ar1 = ageing1 / n1
+        if sex:
+            br1 = bir1 / nt.reshape((-1, 1))
+        else:
+            br1 = bir1 / nt
+
+        return {
+            'dimnames': dimnames,
+            'Year': self.Years,
+            'N': n1,
+            'RateDeath': dr1,
+            'RateBirth': br1,
+            'RateAgeing': ar1,
+            'Deaths': dea1,
+            'Births': bir1,
+            'Ageings': ageing1
+        }
+
     def __str__(self):
         return f'RawData({self.Location}, from {self.YearSpan[0]} to {self.YearSpan[1]}, agp: Single age)'
 
