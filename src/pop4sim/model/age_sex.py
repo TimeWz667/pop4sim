@@ -36,7 +36,7 @@ def reform_pars_agesex(ext: RawData, agp, mig=False, opt_mig=True, ty='cont'):
     # Get model-based migration rates
     mig = list()
     for t in years:
-        y = sol.sol(t).reshape((101, 2))
+        y = sol.sol(t).reshape(dims)
         mig.append(demo.calc_mig(t, y))
 
     mig = np.stack(mig)
