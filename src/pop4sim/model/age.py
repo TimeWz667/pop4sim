@@ -7,17 +7,17 @@ from pop4sim.fetcher import RawData
 from pop4sim.model.dy import ModelODE
 
 __author__ = 'Chu-Chang Ku'
-__all__ = ['reform_pars_agesex']
+__all__ = ['reform_pars_age']
 
 
-def reform_pars_agesex(ext: RawData, agp, mig=False, opt_mig=True, ty='cont'):
+def reform_pars_age(ext: RawData, sex, agp, mig=False, opt_mig=True, ty='cont'):
     mig = False  # todo unlock for more approaches
 
     years = ext.Years
     t_span = ext.YearSpan
     n_yr = len(years)
 
-    stacked = ext.aggregate(sex=True, agp=agp)
+    stacked = ext.aggregate(sex=sex, agp=agp)
     if not mig:
         if ty != 'cont':
             demo = Demography(stacked, 'discrete')
