@@ -3,6 +3,7 @@ from tqdm import tqdm
 from scipy.integrate import solve_ivp
 from scipy.optimize import minimize
 from pop4sim.demography import Demography
+from pop4sim.fetcher import RawData
 
 __author__ = 'Chu-Chang Ku'
 __all__ = ['ModelAgeSex', 'reform_pars_agesex']
@@ -50,13 +51,16 @@ class ModelAgeSex:
         return pars['N'].copy()
 
 
-def reform_pars_agesex(ext, mig=False, opt_mig=True):
+def reform_pars_agesex(ext: RawData, mig=False, opt_mig=True):
+    years = ext.Years
+    t_span = ext.YearSpan
+
     stacked = {
-        'N': np.stack([ext['N_F'], ext['N_M']], 2),
-        'DeaR': np.stack([ext['DeaR_F'], ext['DeaR_M']], 2),
-        'BirR': np.stack([ext['BirR_F'], ext['BirR_M']], 1),
-        'Year': ext['Year'],
-        'Age': ext['Age']
+        'N': np.stack([ext.Population['F'], ext.Population['M']], 2),
+        'DeaR': np.stack([ext.RateDeath['F'], ext.RateDeath['M']], 2),
+        'BirR': np.stack([ext.RateBirth['F'], ext.RateBirth['M']], 1),
+        'Year': ext.Years['Year'],
+        'Age': range(101)
     }
 
     demo = Demography(stacked)
@@ -66,15 +70,13 @@ def reform_pars_agesex(ext, mig=False, opt_mig=True):
 
     model = ModelAgeSex(demo)
 
-    year = ext['Year']
-    t_span = [np.min(year), np.max(year)]
-    n_yr = len(year)
-    y0 = model.get_y0(year[0])
+    n_yr = len(years)
+    y0 = model.get_y0(t_span[0])
     sol = solve_ivp(model, y0=y0.reshape(-1), t_span=t_span, dense_output=True)
 
     # Get model-based migration rates
     mig = list()
-    for t in year:
+    for t in years:
         y = sol.sol(t).reshape((101, 2))
         mig.append(model.calc_mig(t, y))
 
@@ -89,11 +91,11 @@ def reform_pars_agesex(ext, mig=False, opt_mig=True):
     stacked_mig = dict(stacked)
     stacked_mig['MigR'] = mig.copy()
 
-    t_start = year[0]
+    t_start = t_span[0]
     y0 = model.get_y0(t_start)
 
     for i in tqdm(range(1, n_yr)):
-        t_end = year[i]
+        t_end = years[i]
         x0 = mig[i].reshape(-1)
         bnds = [list(lu) for lu in zip(x0 * 0.5, x0 * 1.5)]
         for bnd in bnds:

@@ -1,8 +1,7 @@
 import numpy as np
-from tqdm import tqdm
 from scipy.integrate import solve_ivp
-from scipy.optimize import minimize_scalar
 from pop4sim.demography import Demography
+from pop4sim.fetcher import RawData
 
 __author__ = 'Chu-Chang Ku'
 __all__ = ['ModelAll', 'reform_pars_all']
@@ -44,14 +43,14 @@ class ModelAll:
         return pars['N'].copy()
 
 
-def reform_pars_all(ext, mig=False):
-    ns = (ext['N_F'] + ext['N_M']).sum(1)
-    dea = (ext['N_F'] * ext['DeaR_F'] + ext['N_M'] * ext['DeaR_M']).sum(1)
+def reform_pars_all(ext: RawData, mig=False):
+    ns = (ext.Population['F'] + ext.Population['M']).sum(1)
+    dea = (ext.Population['F'] * ext.RateDeath['F'] + ext.Population['M'] * ext.RateDeath['M']).sum(1)
     stacked = {
         'N': ns,
         'DeaR': dea / ns,
-        'BirR': ext['BirR_F'] + ext['BirR_M'],
-        'Year': ext['Year'],
+        'BirR': ext.RateBirth['F'] + ext.RateBirth['M'],
+        'Year': ext.Years,
     }
 
     demo = Demography(stacked)
@@ -61,8 +60,8 @@ def reform_pars_all(ext, mig=False):
 
     model = ModelAll(demo)
 
-    year = ext['Year']
-    t_span = [np.min(year), np.max(year)]
+    year = ext.Years
+    t_span = ext.YearSpan
     n_yr = len(year)
     y0 = model.get_y0(year[0])
     sol = solve_ivp(model, y0=y0.reshape(-1), t_span=t_span, dense_output=True)

@@ -17,4 +17,3 @@ class Demography:
 
     def __call__(self, t):
         return {k: v(t) for k, v in self.Inputs.items()}
-

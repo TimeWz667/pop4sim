@@ -6,9 +6,24 @@ import ssl
 import urllib3
 
 __author__ = 'Chu-Chang Ku'
-__all__ = ['FetcherWPP', 'fetch_wpp']
+__all__ = ['FetcherWPP', 'fetch_wpp', 'RawData']
 
 WPP_BaseURL = 'https://population.un.org/dataportalapi/api/v1'
+
+
+class RawData:
+    def __init__(self, loc, years, pop, dea, bir):
+        self.Location = loc
+        self.Years = years
+        self.YearSpan = years[0], years[-1]
+        self.Population = pop
+        self.RateDeath = dea
+        self.RateBirth = bir
+
+    def __str__(self):
+        return f'RawData({self.Location}, from {self.YearSpan[0]} to {self.YearSpan[1]}, agp: Single age)'
+
+    __repr__ = __str__
 
 
 class DefaultAdaptor(requests.adapters.HTTPAdapter):
@@ -136,26 +151,32 @@ def fetch_wpp(loc, year0=1970, year1=2030, fetcher=None):
         'bir': reform_mt(bir), 'bsr': reform_mt(bsr)
     }
 
-    ext = dict()
-    ext['N_F'] = raw['pop_f'][0]
-    ext['N_M'] = raw['pop_m'][0]
+    pop = {
+        'F': raw['pop_f'][0],
+        'M': raw['pop_m'][0]
+    }
 
     # ext['N_F_0'], ext['N_F_m'], ext['N_F_1'] = divide_pop(raw['pop_f'][0] * 1e3)
     # ext['N_M_0'], ext['N_M_m'], ext['N_M_1'] = divide_pop(raw['pop_m'][0] * 1e3)
-    ext['DeaR_F'] = raw['dea_f'][0] / ext['N_F']
-    ext['DeaR_M'] = raw['dea_m'][0] / ext['N_M']
+    dea = {
+        'F': raw['dea_f'][0] / pop['F'],
+        'M': raw['dea_m'][0] / pop['M']
+    }
 
     prop_f = 1 / (1 + raw['bsr'][0])
     prop_m = 1 - prop_f
-    ext['BirR_F'] = raw['bir'][0] * prop_f * 1e-3
-    ext['BirR_M'] = raw['bir'][0] * prop_m * 1e-3
+
+    bir = {
+        'F': raw['bir'][0] * prop_f * 1e-3,
+        'M': raw['bir'][0] * prop_m * 1e-3
+    }
 
     years = np.array(raw['dea_f'][1]) + 0.5
-    ext['Year'], ext['Age'] = years, raw['dea_f'][2]
-
-    return ext
+    return RawData(loc=geo['name'], years=years, pop=pop, dea=dea, bir=bir)
 
 
 if __name__ == '__main__':
-    ext = fetch_wpp(loc='VN', year0=2000, year1=2010)
-    print(ext['N_F'])
+    ext = fetch_wpp(loc='VN', year0=2000, year1=2003)
+
+    print(ext)
+    print(ext.Population['F'])
