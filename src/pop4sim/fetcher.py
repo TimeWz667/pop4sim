@@ -4,6 +4,7 @@ import requests
 from requests.adapters import HTTPAdapter
 import ssl
 import urllib3
+from tqdm import tqdm
 
 __author__ = 'Chu-Chang Ku'
 __all__ = ['FetcherWPP', 'fetch_wpp', 'RawData']
@@ -131,7 +132,7 @@ class FetcherWPP:
 
     def fetch(self, gid, idx, year0, year1):
         response = self.get(
-            f'/data/indicators/{idx}/locations/{gid}/start/{year0}/end/{year1}?pageSize=500&variant=Median')
+            f'/data/indicators/{idx}/locations/{gid}/start/{year0}/end/{year1}')
 
         js = response.json()
 
@@ -139,14 +140,25 @@ class FetcherWPP:
         df = pd.json_normalize(js['data'])
         dfs.append(df)
 
-        while js['nextPage'] is not None:
-            # Redirect to the next page
-            target = js['nextPage'].replace(self.BaseURL, '')
-            response = self.get(target)
-            js = response.json()
+        t_end = float(js['data'][-1]['timeLabel'])
 
-            df = pd.json_normalize(js['data'])
-            dfs.append(df)
+        # print(f'--{t_end}')
+        with tqdm(total=year1 - year0) as pbar:
+            pbar.update(t_end - year0)
+            while js['nextPage'] is not None:
+                # Redirect to the next page
+                target = js['nextPage'].replace(self.BaseURL, '')
+                response = self.get(target)
+                js = response.json()
+
+                df = pd.json_normalize(js['data'])
+                dfs.append(df)
+
+                diff = float(js['data'][-1]['timeLabel']) - t_end
+                if diff > 0:
+                    pbar.update(diff)
+                    t_end += diff
+                    # print(f'--{t_end}')
 
         return pd.concat(dfs)
 
