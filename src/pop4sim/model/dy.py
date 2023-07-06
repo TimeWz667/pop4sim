@@ -25,7 +25,7 @@ class ModelODE:
             dy[1:] += ageing[:-1]
 
         if self.IsCohort:
-            return dy
+            return dy.reshape(-1)
 
         births = pars['r_birth'] * y.sum()
 

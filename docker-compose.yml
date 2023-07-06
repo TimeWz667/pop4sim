@@ -17,6 +17,6 @@ services:
         - ./notebooks:/home/jovyan/work
         - ./src/pop4sim:/home/jovyan/work/pop4sim
       ports:
-        - 8888:8888
+        - 8800:8888
       environment:
         - JUPYTER_TOKEN=hi
