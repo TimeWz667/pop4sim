@@ -23,7 +23,6 @@ class Demography:
         self.Type = ty
         fn = interp_cont if ty == 'cont' else interp_dis
 
-        self.fn = fn
         self.N = fn(years, src['N'])
         self.RateBirth = fn(years, src['RateBirth'])
         self.RateDeath = fn(years, src['RateDeath'])
